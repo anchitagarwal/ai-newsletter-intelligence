@@ -1,9 +1,10 @@
 // n8n node: Parse and Merge Output
 // Splits Claude's response into KB/Projects/Summary sections, applies EXISTING_UPDATEs inline,
 // appends new scored items, and builds Discord messages.
-const claudeText = $input.first().json.claude_response || '';
-const existingKB = $input.first().json.kb_content || '';
-const existingProjects = $input.first().json.projects_content || '';
+// Anthropic node outputs content array; Code node fallback for local testing
+const claudeText = $input.first().json.content?.[0]?.text || $input.first().json.claude_response || '';
+const existingKB = $node['Collect All Context'].json.kb_content || '';
+const existingProjects = $node['Collect All Context'].json.projects_content || '';
 
 const extract = (content, marker, endMarker) => {
   const start = content.indexOf(marker);
@@ -68,9 +69,15 @@ if (newProjectItems.length > 50) {
   updatedProjects = updatedProjects + `\n\n---\n\n## Added ${today}\n\n` + newProjectItems;
 }
 
+const truncate = (text, limit) => {
+  if (text.length <= limit) return text;
+  const cut = text.lastIndexOf('\n\n', limit);
+  return (cut > 0 ? text.substring(0, cut) : text.substring(0, limit)) + '\n\n*(more in Obsidian)*';
+};
+
 const summaryMsg = `## Latent Space — Daily Intelligence ${today}\n\n**Today's Signals**\n${summary}`;
-const kbMsg = newKBItems.length > 50 ? `**New Concepts Added**\n${newKBItems.substring(0, 1800)}` : null;
-const projectsMsg = newProjectItems.length > 50 ? `**New Project Ideas Added**\n${newProjectItems.substring(0, 1800)}` : null;
+const kbMsg = newKBItems.length > 50 ? `**New Concepts Added**\n${truncate(newKBItems, 1800)}` : null;
+const projectsMsg = newProjectItems.length > 50 ? `**New Project Ideas Added**\n${truncate(newProjectItems, 1800)}` : null;
 
 return [{ json: {
   date: today,
