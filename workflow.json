@@ -1,0 +1,480 @@
+{
+  "name": "Latent Space — Newsletter Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "node-01-schedule",
+      "name": "Daily Trigger 7am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "q": "from:(avichawla@substack.com OR aibyaakash@substack.com OR lenny@substack.com OR pragmaticengineer@substack.com OR dataengineeringweekly@substack.com OR newsletter@towardsdatascience.com OR chamath@substack.com OR superintelligencenews@substack.com OR businessanalytics@substack.com OR analyticsengineeringroundup@substack.com OR eczachly@substack.com OR bytebytego@substack.com OR aakashgupta@substack.com) newer_than:1d"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1",
+          "name": "Gmail OAuth2"
+        }
+      },
+      "id": "node-02-gmail",
+      "name": "Fetch Newsletters",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-email",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-03-if-any",
+      "name": "Any newsletters today?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\n\nconst newsletters = items.map(item => {\n  const msg = item.json;\n  const subject = msg.subject || msg.Subject || 'No subject';\n  const sender = msg.from?.text || msg.From || 'Unknown';\n  const body = msg.text || msg.textAsHtml || msg.snippet || '';\n  const cleaned = body\n    .replace(/https?:\\/\\/[^\\s\\]]+/g, '')\n    .replace(/\\[.*?\\]/g, '')\n    .replace(/͏/g, '')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/\\s{3,}/g, '\\n\\n')\n    .trim();\n  return `--- NEWSLETTER ---\\nFrom: ${sender}\\nSubject: ${subject}\\n\\n${cleaned.substring(0, 4000)}`;\n});\n\nreturn [{ json: { combined_text: newsletters.join('\\n\\n'), count: items.length } }];"
+      },
+      "id": "node-04-combine",
+      "name": "Combine Newsletter Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://100.125.175.107:27123/vault/Work/Job%20Search/Prep/AI%20ML%20Knowledge%20Base.md",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Obsidian REST API"
+        }
+      },
+      "id": "node-05-read-kb",
+      "name": "Read KB File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const kbContent = $input.first().json.content || '';\nconst newsletterText = $node['Combine Newsletter Content'].json.combined_text || '';\nreturn [{ json: { kb_content: kbContent, combined_text: newsletterText } }];"
+      },
+      "id": "node-06-attach-kb",
+      "name": "Attach Newsletter to KB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://100.125.175.107:27123/vault/Work/Job%20Search/Prep/AI%20Project%20Recommendations.md",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Obsidian REST API"
+        }
+      },
+      "id": "node-07-read-projects",
+      "name": "Read Projects File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const projectsContent = $input.first().json.content || '';\nconst kbContent = $input.first().json.kb_content || '';\nconst combinedText = $input.first().json.combined_text || '';\n\nreturn [{ json: {\n  combined_text: combinedText,\n  kb_content: kbContent,\n  projects_content: projectsContent\n} }];"
+      },
+      "id": "node-08-collect-context",
+      "name": "Collect All Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-kb-guard",
+              "leftValue": "={{ $json.kb_content.length }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-09-guard",
+      "name": "Guard: KB content exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const ctx = $input.first().json;\nconst existingKB = ctx.kb_content || '';\nconst existingProjects = ctx.projects_content || '';\nconst combinedText = ctx.combined_text || '';\n\nconst systemPrompt = `You are an AI research analyst maintaining two living documents for Anchit Agarwal, a senior ML/data engineer actively job searching for Applied AI Engineer and ML Engineer roles.\n\n## WHO ANCHIT IS\n- Zillow (2018-2024): Zestimate team (3,000+ production ML models) then AI Platform team (PyTorch/Kubeflow/Metaflow training infra, KServe model serving)\n- Coinbase (2024-2026): Built JARVIS RAG-based AI analytics agent and the data infrastructure layer that made it work. Laid off May 2026.\n- MS Computer Science, Machine Learning and Distributed Systems, ASU, 4.0 GPA\n- Target roles: Applied AI Engineer > ML Engineer > MLOps\n- Collaborating with wife Juhi (PM in adtech) on projects under the Latent Space brand\n\n## ACTIVE PIPELINE — FLAG RELEVANCE\nfal.ai (HIGH) — AI inference infra startup. Anchit's KServe/model serving background is a direct match. Flag: model serving, inference optimization, GPU infrastructure, latency, AI cost.\nDiscord (MEDIUM-HIGH) — 600M users, real-time, large-scale data. Staff DE remote. Flag: real-time pipelines, stream processing, Kafka, Flink.\nTRM Labs (MEDIUM) — Blockchain analytics, MLOps, GCP/Python/Beam/Databricks. Interview gaps: observability, model monitoring. Flag: MLOps, model monitoring, observability, streaming ML.\nAirbnb (MEDIUM-LOW) — Flag only if directly about AI/ML at marketplace scale.\n\n## CORE MINDSET — BUSINESS PROBLEM FIRST\nFrame everything as \"I solved X business problem using Y technique.\" For every project idea: (1) Who has this problem? (2) What does it cost today? (3) Business outcome of success? (4) Why AI? (5) Anchit's specific edge?\n\n## DEDUPLICATION AND SCORING\n- Score each concept/project 1-10 on relevance to target roles and pipeline\n- Only include items scoring 7 or above\n- If concept already exists in EXISTING KNOWLEDGE BASE below: skip unless meaningfully new angle. If new angle: output as EXISTING_UPDATE: [name] then 2-3 sentences only\n- Same rule for projects\n- Output in descending score order\n\n## EXISTING KNOWLEDGE BASE (do not duplicate)\n${existingKB.substring(0, 3000)}\n\n## EXISTING PROJECTS (do not duplicate)\n${existingProjects.substring(0, 3000)}\n\n## OUTPUT FORMAT\n\n===KNOWLEDGE_BASE===\nFor new concepts:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Concept Name]**\nWhat it is: [2-3 sentences]\nBusiness context: [who cares and why]\nInterview angle: [exact claim Anchit can make]\nSource: [newsletter, date]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new angle only, 2-3 sentences]\n\n===PROJECTS===\nFor new projects:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Project Title]**\nBusiness problem: [5 questions concisely]\nWhat to build: [1 week scope]\nSkills: [comma separated]\nConnection to story: [1 sentence]\nFrame it as: [one-sentence interview pitch]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new framing only]\n\n===SUMMARY===\n3-5 bullets. Explicitly flag fal.ai, Discord, TRM Labs, Airbnb relevance.\n\n## QUALITY BAR\n- Skip promos, course ads, opinion pieces\n- Skip anything Anchit knows deeply already\n- Prioritize: agent architecture, LLM evaluation, fine-tuning, MLOps, AI inference, model serving\n- Every KB entry usable verbatim in interview\n- Every project shippable as demo in 1 week`;\n\nconst response = await fetch('https://api.anthropic.com/v1/messages', {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    'anthropic-version': '2023-06-01',\n    'x-api-key': $env.ANTHROPIC_API_KEY\n  },\n  body: JSON.stringify({\n    model: 'claude-sonnet-4-6',\n    max_tokens: 4000,\n    system: systemPrompt,\n    messages: [{ role: 'user', content: 'Analyze the following newsletters from the past 24 hours and produce the structured output.\\n\\n' + combinedText }]\n  })\n});\n\nconst data = await response.json();\nconst claudeText = data.content?.[0]?.text || '';\n\nreturn [{\n  json: {\n    claude_response: claudeText,\n    kb_content: existingKB,\n    projects_content: existingProjects\n  }\n}];"
+      },
+      "id": "node-10-call-claude",
+      "name": "Call Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const claudeText = $input.first().json.claude_response || '';\nconst existingKB = $input.first().json.kb_content || '';\nconst existingProjects = $input.first().json.projects_content || '';\n\nconst extract = (content, marker, endMarker) => {\n  const start = content.indexOf(marker);\n  if (start === -1) return '';\n  const end = endMarker ? content.indexOf(endMarker, start) : content.length;\n  return content.slice(start + marker.length, end === -1 ? content.length : end).trim();\n};\n\nconst today = new Date().toISOString().split('T')[0];\nconst kb = extract(claudeText, '===KNOWLEDGE_BASE===', '===PROJECTS===');\nconst projects = extract(claudeText, '===PROJECTS===', '===SUMMARY===');\nconst summary = extract(claudeText, '===SUMMARY===', null);\n\nconst applyUpdates = (existing, newContent) => {\n  let updated = existing;\n  const lines = newContent.split('\\n');\n  let i = 0;\n  while (i < lines.length) {\n    if (lines[i].startsWith('EXISTING_UPDATE:')) {\n      const conceptName = lines[i].replace('EXISTING_UPDATE:', '').trim();\n      const angleLines = [];\n      i++;\n      while (i < lines.length && !lines[i].startsWith('EXISTING_UPDATE:') && !lines[i].startsWith('SCORE:')) {\n        angleLines.push(lines[i]);\n        i++;\n      }\n      const newAngle = angleLines.join('\\n').trim();\n      if (newAngle && updated.includes(`**${conceptName}**`)) {\n        updated = updated.replace(`**${conceptName}**`, `**${conceptName}**\\n> **New angle (${today}):** ${newAngle}`);\n      }\n    } else {\n      i++;\n    }\n  }\n  return updated;\n};\n\nconst stripUpdates = (content) => {\n  const lines = content.split('\\n');\n  const result = [];\n  let skip = false;\n  for (const line of lines) {\n    if (line.startsWith('EXISTING_UPDATE:')) { skip = true; continue; }\n    if (skip && line.startsWith('SCORE:')) skip = false;\n    if (!skip) result.push(line);\n  }\n  return result.join('\\n').trim();\n};\n\nconst newKBItems = stripUpdates(kb);\nconst newProjectItems = stripUpdates(projects);\n\nlet updatedKB = applyUpdates(existingKB, kb);\nif (newKBItems.length > 50) {\n  updatedKB = updatedKB + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newKBItems;\n}\n\nlet updatedProjects = applyUpdates(existingProjects, projects);\nif (newProjectItems.length > 50) {\n  updatedProjects = updatedProjects + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newProjectItems;\n}\n\nconst summaryMsg = `## Latent Space — Daily Intelligence ${today}\\n\\n**Today's Signals**\\n${summary}`;\nconst kbMsg = newKBItems.length > 50 ? `**New Concepts Added**\\n${newKBItems.substring(0, 1800)}` : null;\nconst projectsMsg = newProjectItems.length > 50 ? `**New Project Ideas Added**\\n${newProjectItems.substring(0, 1800)}` : null;\n\nreturn [{ json: {\n  date: today,\n  updated_kb: updatedKB,\n  updated_projects: updatedProjects,\n  summary_msg: summaryMsg,\n  kb_msg: kbMsg,\n  projects_msg: projectsMsg,\n  has_new_kb: newKBItems.length > 50,\n  has_new_projects: newProjectItems.length > 50\n} }];"
+      },
+      "id": "node-11-parse-merge",
+      "name": "Parse and Merge Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://100.125.175.107:27123/vault/Work/Job%20Search/Prep/AI%20ML%20Knowledge%20Base.md",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/markdown",
+        "body": "={{ $json.updated_kb }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Obsidian REST API"
+        }
+      },
+      "id": "node-12-write-kb",
+      "name": "Write KB to Obsidian",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2750, 0]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://100.125.175.107:27123/vault/Work/Job%20Search/Prep/AI%20Project%20Recommendations.md",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/markdown",
+        "body": "={{ $json.updated_projects }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Obsidian REST API"
+        }
+      },
+      "id": "node-13-write-projects",
+      "name": "Write Projects to Obsidian",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2750, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_WITH_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({content: $json.summary_msg}) }}",
+        "options": {}
+      },
+      "id": "node-14-discord-summary",
+      "name": "Post Summary to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2750, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-kb",
+              "leftValue": "={{ $json.has_new_kb.toString() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-15-if-kb",
+      "name": "New KB items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2750, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-projects",
+              "leftValue": "={{ $json.has_new_projects.toString() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-16-if-projects",
+      "name": "New project ideas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2750, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_WITH_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({content: $json.kb_msg}) }}",
+        "options": {}
+      },
+      "id": "node-17-discord-kb",
+      "name": "Post KB to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [3000, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_WITH_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({content: $json.projects_msg}) }}",
+        "options": {}
+      },
+      "id": "node-18-discord-projects",
+      "name": "Post Projects to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [3000, 800]
+    }
+  ],
+  "connections": {
+    "Daily Trigger 7am": {
+      "main": [
+        [
+          { "node": "Fetch Newsletters", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Newsletters": {
+      "main": [
+        [
+          { "node": "Any newsletters today?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Any newsletters today?": {
+      "main": [
+        [
+          { "node": "Combine Newsletter Content", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Combine Newsletter Content": {
+      "main": [
+        [
+          { "node": "Read KB File", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Read KB File": {
+      "main": [
+        [
+          { "node": "Attach Newsletter to KB", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Attach Newsletter to KB": {
+      "main": [
+        [
+          { "node": "Read Projects File", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Read Projects File": {
+      "main": [
+        [
+          { "node": "Collect All Context", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Collect All Context": {
+      "main": [
+        [
+          { "node": "Guard: KB content exists?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Guard: KB content exists?": {
+      "main": [
+        [
+          { "node": "Call Claude", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Call Claude": {
+      "main": [
+        [
+          { "node": "Parse and Merge Output", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse and Merge Output": {
+      "main": [
+        [
+          { "node": "Write KB to Obsidian", "type": "main", "index": 0 },
+          { "node": "Write Projects to Obsidian", "type": "main", "index": 0 },
+          { "node": "Post Summary to Discord", "type": "main", "index": 0 },
+          { "node": "New KB items?", "type": "main", "index": 0 },
+          { "node": "New project ideas?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "New KB items?": {
+      "main": [
+        [
+          { "node": "Post KB to Discord", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "New project ideas?": {
+      "main": [
+        [
+          { "node": "Post Projects to Discord", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Los_Angeles"
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
