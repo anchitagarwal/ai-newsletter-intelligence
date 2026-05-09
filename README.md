@@ -51,16 +51,6 @@ The JS for each code node lives in `nodes/` for version control. Copy-paste into
 - `Work/Job Search/Prep/AI ML Knowledge Base.md`
 - `Work/Job Search/Prep/AI Project Recommendations.md`
 
-## Current Blocker
-
-Obsidian REST API on Mac not reachable from VPS via Tailscale (`ECONNREFUSED 100.125.175.107:27123`). Run the fix:
-
-```bash
-./scripts/fix-obsidian-connectivity.sh
-```
-
-See `scripts/fix-obsidian-connectivity.sh` for details.
-
 ## n8n Credentials
 
 All credentials live inside n8n — not in this repo.
