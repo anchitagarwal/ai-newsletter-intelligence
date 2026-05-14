@@ -69,23 +69,51 @@ if (newProjectItems.length > 50) {
   updatedProjects = updatedProjects + `\n\n---\n\n## Added ${today}\n\n` + newProjectItems;
 }
 
-const truncate = (text, limit) => {
-  if (text.length <= limit) return text;
-  const cut = text.lastIndexOf('\n\n', limit);
-  return (cut > 0 ? text.substring(0, cut) : text.substring(0, limit)) + '\n\n*(more in Obsidian)*';
+// Chunk content into Discord-safe messages. Discord limit is 2000 chars; we
+// target 1900 to leave room for the header. Split at item boundaries
+// (`\n\n---\n\n`); hard-split only if a single item exceeds the cap.
+const chunkForDiscord = (header, body, limit = 1900) => {
+  if (!body || body.length < 50) return [];
+  const items = body.split('\n\n---\n\n');
+  const chunks = [];
+  let current = '';
+  const cap = limit - header.length - 10;
+  const flush = () => { if (current) { chunks.push(current); current = ''; } };
+  for (const item of items) {
+    const sep = current ? '\n\n---\n\n' : '';
+    if (current.length + sep.length + item.length > cap) {
+      flush();
+      if (item.length > cap) {
+        let rest = item;
+        while (rest.length > cap) {
+          const nl = rest.lastIndexOf('\n', cap);
+          const split = nl > cap / 2 ? nl : cap;
+          chunks.push(rest.substring(0, split));
+          rest = rest.substring(split).trimStart();
+        }
+        current = rest;
+      } else {
+        current = item;
+      }
+    } else {
+      current += sep + item;
+    }
+  }
+  flush();
+  return chunks.map((c, i) => `${i === 0 ? header : header + ' (cont.)'}\n${c}`);
 };
 
 const summaryMsg = `## Latent Space — Daily Intelligence ${today}\n\n**Today's Signals**\n${summary}`;
-const kbMsg = newKBItems.length > 50 ? `**New Concepts Added**\n${truncate(newKBItems, 1800)}` : null;
-const projectsMsg = newProjectItems.length > 50 ? `**New Project Ideas Added**\n${truncate(newProjectItems, 1800)}` : null;
+const kbMsgs = chunkForDiscord('**New Concepts Added**', newKBItems);
+const projectsMsgs = chunkForDiscord('**New Project Ideas Added**', newProjectItems);
 
 return [{ json: {
   date: today,
   updated_kb: updatedKB,
   updated_projects: updatedProjects,
   summary_msg: summaryMsg,
-  kb_msg: kbMsg,
-  projects_msg: projectsMsg,
-  has_new_kb: newKBItems.length > 50,
-  has_new_projects: newProjectItems.length > 50
+  kb_msgs: kbMsgs,
+  projects_msgs: projectsMsgs,
+  has_new_kb: kbMsgs.length > 0,
+  has_new_projects: projectsMsgs.length > 0
 } }];

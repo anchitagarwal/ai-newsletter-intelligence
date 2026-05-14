@@ -10,7 +10,7 @@ const systemPrompt = `You are an AI research analyst maintaining two living docu
 
 ## WHO ANCHIT IS
 - Zillow (2018-2024): Zestimate team (3,000+ production ML models) then AI Platform team (PyTorch/Kubeflow/Metaflow training infra, KServe model serving)
-- Coinbase (2024-2026): Built JARVIS RAG-based AI analytics agent and the data infrastructure layer that made it work. Laid off May 2026.
+- Coinbase (2024-2026): Built marketing data infrastructure (pipelines, data models) consumed by ML and analytics systems. Contributed to JARVIS AI agent adoption by authoring the Marketing Domain Playbook grounding it in business context. Laid off May 2026.
 - MS Computer Science, Machine Learning and Distributed Systems, ASU, 4.0 GPA
 - Target roles: Applied AI Engineer > ML Engineer > MLOps
 - Collaborating with wife Juhi (PM in adtech) on projects under the Latent Space brand

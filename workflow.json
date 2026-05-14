@@ -220,7 +220,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// n8n node: Build Claude Request\n// Builds Anthropic /v1/messages JSON from Guard output ($input). Keeps the giant\n// prompt out of HTTP Request expressions (n8n rejects nested [{ role: ... }] there).\n\nconst SYSTEM_PROMPT = `You are an AI research analyst maintaining two living documents for Anchit Agarwal, a senior ML/data engineer actively job searching for Applied AI Engineer and ML Engineer roles.\n\n## WHO ANCHIT IS\n- Zillow (2018-2024): Zestimate team (3,000+ production ML models) then AI Platform team (PyTorch/Kubeflow/Metaflow training infra, KServe model serving)\n- Coinbase (2024-2026): Built JARVIS RAG-based AI analytics agent and the data infrastructure layer that made it work. Laid off May 2026.\n- MS Computer Science, Machine Learning and Distributed Systems, ASU, 4.0 GPA\n- Target roles: Applied AI Engineer > ML Engineer > MLOps\n- Collaborating with wife Juhi (PM in adtech) on projects under the Latent Space brand\n\n## ACTIVE PIPELINE \u2014 FLAG RELEVANCE\nfal.ai (HIGH) \u2014 AI inference infra startup. Anchit's KServe/model serving background is a direct match. Flag: model serving, inference optimization, GPU infrastructure, latency, AI cost.\nDiscord (MEDIUM-HIGH) \u2014 600M users, real-time, large-scale data. Staff DE remote. Flag: real-time pipelines, stream processing, Kafka, Flink.\nTRM Labs (MEDIUM) \u2014 Blockchain analytics, MLOps, GCP/Python/Beam/Databricks. Interview gaps: observability, model monitoring. Flag: MLOps, model monitoring, observability, streaming ML.\nAirbnb (MEDIUM-LOW) \u2014 Flag only if directly about AI/ML at marketplace scale.\n\n## CORE MINDSET \u2014 BUSINESS PROBLEM FIRST\nFrame everything as 'I solved X business problem using Y technique.' For every project idea: (1) Who has this problem? (2) What does it cost today? (3) Business outcome of success? (4) Why AI? (5) Anchit's specific edge?\n\n## DEDUPLICATION AND SCORING\n- Score each concept/project 1-10 on relevance to target roles and pipeline\n- Only include items scoring 7 or above\n- If concept already exists in the provided knowledge base: skip unless meaningfully new angle. If new angle: output as EXISTING_UPDATE: [name] then 2-3 sentences only\n- Same rule for projects\n- Output in descending score order\n\n## OUTPUT FORMAT\n\n===KNOWLEDGE_BASE===\nFor new concepts:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Concept Name]**\nWhat it is: [2-3 sentences]\nBusiness context: [who cares and why]\nInterview angle: [exact claim Anchit can make]\nSource: [newsletter, date]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new angle only, 2-3 sentences]\n\n===PROJECTS===\nFor new projects:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Project Title]**\nBusiness problem: [5 questions concisely]\nWhat to build: [1 week scope]\nSkills: [comma separated]\nConnection to story: [1 sentence]\nFrame it as: [one-sentence interview pitch]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new framing only]\n\n===SUMMARY===\n3-5 bullets. Explicitly flag fal.ai, Discord, TRM Labs, Airbnb relevance.\n\n## QUALITY BAR\n- Skip promos, course ads, opinion pieces\n- Skip anything Anchit knows deeply already\n- Prioritize: agent architecture, LLM evaluation, fine-tuning, MLOps, AI inference, model serving\n- Every KB entry usable verbatim in interview\n- Every project shippable as demo in 1 week`;\n\nconst j = $input.first().json;\nconst kb = (j.kb_content || '').substring(0, 3000);\nconst projects = (j.projects_content || '').substring(0, 3000);\nconst combined = j.combined_text || '';\n\nconst userContent =\n  '## EXISTING KNOWLEDGE BASE (do not duplicate)\\n' +\n  kb +\n  '\\n\\n## EXISTING PROJECTS (do not duplicate)\\n' +\n  projects +\n  '\\n\\nAnalyze the following newsletters from the past 24 hours and produce the structured output.\\n\\n' +\n  combined;\n\nconst anthropic_body = JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 4000,\n  system: SYSTEM_PROMPT,\n  messages: [{ role: 'user', content: userContent }],\n});\n\nreturn [{ json: { anthropic_body } }];\n"
+        "jsCode": "// n8n node: Build Claude Request\n// Builds Anthropic /v1/messages JSON from Guard output ($input). Keeps the giant\n// prompt out of HTTP Request expressions (n8n rejects nested [{ role: ... }] there).\n\nconst SYSTEM_PROMPT = `You are an AI research analyst maintaining two living documents for Anchit Agarwal, a senior ML/data engineer actively job searching for Applied AI Engineer and ML Engineer roles.\n\n## WHO ANCHIT IS\n- Zillow (2018-2024): Zestimate team (3,000+ production ML models) then AI Platform team (PyTorch/Kubeflow/Metaflow training infra, KServe model serving)\n- Coinbase (2024-2026): Built marketing data infrastructure (pipelines, data models) consumed by ML and analytics systems. Contributed to JARVIS AI agent adoption by authoring the Marketing Domain Playbook grounding it in business context. Laid off May 2026.\n- MS Computer Science, Machine Learning and Distributed Systems, ASU, 4.0 GPA\n- Target roles: Applied AI Engineer > ML Engineer > MLOps\n- Collaborating with wife Juhi (PM in adtech) on projects under the Latent Space brand\n\n## ACTIVE PIPELINE \u2014 FLAG RELEVANCE\nfal.ai (HIGH) \u2014 AI inference infra startup. Anchit's KServe/model serving background is a direct match. Flag: model serving, inference optimization, GPU infrastructure, latency, AI cost.\nDiscord (MEDIUM-HIGH) \u2014 600M users, real-time, large-scale data. Staff DE remote. Flag: real-time pipelines, stream processing, Kafka, Flink.\nTRM Labs (MEDIUM) \u2014 Blockchain analytics, MLOps, GCP/Python/Beam/Databricks. Interview gaps: observability, model monitoring. Flag: MLOps, model monitoring, observability, streaming ML.\nAirbnb (MEDIUM-LOW) \u2014 Flag only if directly about AI/ML at marketplace scale.\n\n## CORE MINDSET \u2014 BUSINESS PROBLEM FIRST\nFrame everything as 'I solved X business problem using Y technique.' For every project idea: (1) Who has this problem? (2) What does it cost today? (3) Business outcome of success? (4) Why AI? (5) Anchit's specific edge?\n\n## DEDUPLICATION AND SCORING\n- Score each concept/project 1-10 on relevance to target roles and pipeline\n- Only include items scoring 7 or above\n- If concept already exists in the provided knowledge base: skip unless meaningfully new angle. If new angle: output as EXISTING_UPDATE: [name] then 2-3 sentences only\n- Same rule for projects\n- Output in descending score order\n\n## OUTPUT FORMAT\n\n===KNOWLEDGE_BASE===\nFor new concepts:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Concept Name]**\nWhat it is: [2-3 sentences]\nBusiness context: [who cares and why]\nInterview angle: [exact claim Anchit can make]\nSource: [newsletter, date]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new angle only, 2-3 sentences]\n\n===PROJECTS===\nFor new projects:\nSCORE: [X/10]\nCOMPANY_FLAG: [fal.ai / Discord / TRM Labs / Airbnb / None]\n**[Project Title]**\nBusiness problem: [5 questions concisely]\nWhat to build: [1 week scope]\nSkills: [comma separated]\nConnection to story: [1 sentence]\nFrame it as: [one-sentence interview pitch]\n\nFor updates: EXISTING_UPDATE: [Name]\n[new framing only]\n\n===SUMMARY===\n3-5 bullets. Explicitly flag fal.ai, Discord, TRM Labs, Airbnb relevance.\n\n## QUALITY BAR\n- Skip promos, course ads, opinion pieces\n- Skip anything Anchit knows deeply already\n- Prioritize: agent architecture, LLM evaluation, fine-tuning, MLOps, AI inference, model serving\n- Every KB entry usable verbatim in interview\n- Every project shippable as demo in 1 week`;\n\nconst j = $input.first().json;\nconst kb = (j.kb_content || '').substring(0, 3000);\nconst projects = (j.projects_content || '').substring(0, 3000);\nconst combined = j.combined_text || '';\n\nconst userContent =\n  '## EXISTING KNOWLEDGE BASE (do not duplicate)\\n' +\n  kb +\n  '\\n\\n## EXISTING PROJECTS (do not duplicate)\\n' +\n  projects +\n  '\\n\\nAnalyze the following newsletters from the past 24 hours and produce the structured output.\\n\\n' +\n  combined;\n\nconst anthropic_body = JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 4000,\n  system: SYSTEM_PROMPT,\n  messages: [{ role: 'user', content: userContent }],\n});\n\nreturn [{ json: { anthropic_body } }];\n"
       },
       "id": "node-09b-build-claude",
       "name": "Build Claude Request",
@@ -270,7 +270,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const claudeText = $input.first().json.content?.[0]?.text || '';\nconst existingKB = $node['Collect All Context'].json.kb_content || '';\nconst existingProjects = $node['Collect All Context'].json.projects_content || '';\n\nconst extract = (content, marker, endMarker) => {\n  const start = content.indexOf(marker);\n  if (start === -1) return '';\n  const end = endMarker ? content.indexOf(endMarker, start) : content.length;\n  return content.slice(start + marker.length, end === -1 ? content.length : end).trim();\n};\n\nconst today = new Date().toISOString().split('T')[0];\nconst kb = extract(claudeText, '===KNOWLEDGE_BASE===', '===PROJECTS===');\nconst projects = extract(claudeText, '===PROJECTS===', '===SUMMARY===');\nconst summary = extract(claudeText, '===SUMMARY===', null);\n\nconst applyUpdates = (existing, newContent) => {\n  let updated = existing;\n  const lines = newContent.split('\\n');\n  let i = 0;\n  while (i < lines.length) {\n    if (lines[i].startsWith('EXISTING_UPDATE:')) {\n      const conceptName = lines[i].replace('EXISTING_UPDATE:', '').trim();\n      const angleLines = [];\n      i++;\n      while (i < lines.length && !lines[i].startsWith('EXISTING_UPDATE:') && !lines[i].startsWith('SCORE:')) {\n        angleLines.push(lines[i]);\n        i++;\n      }\n      const newAngle = angleLines.join('\\n').trim();\n      if (newAngle && updated.includes(`**${conceptName}**`)) {\n        updated = updated.replace(`**${conceptName}**`, `**${conceptName}**\\n> **New angle (${today}):** ${newAngle}`);\n      }\n    } else {\n      i++;\n    }\n  }\n  return updated;\n};\n\nconst stripUpdates = (content) => {\n  const lines = content.split('\\n');\n  const result = [];\n  let skip = false;\n  for (const line of lines) {\n    if (line.startsWith('EXISTING_UPDATE:')) { skip = true; continue; }\n    if (skip && line.startsWith('SCORE:')) skip = false;\n    if (!skip) result.push(line);\n  }\n  return result.join('\\n').trim();\n};\n\nconst newKBItems = stripUpdates(kb);\nconst newProjectItems = stripUpdates(projects);\n\nlet updatedKB = applyUpdates(existingKB, kb);\nif (newKBItems.length > 50) {\n  updatedKB = updatedKB + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newKBItems;\n}\n\nlet updatedProjects = applyUpdates(existingProjects, projects);\nif (newProjectItems.length > 50) {\n  updatedProjects = updatedProjects + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newProjectItems;\n}\n\nconst truncate = (text, limit) => {\n  if (text.length <= limit) return text;\n  const cut = text.lastIndexOf('\\n\\n', limit);\n  return (cut > 0 ? text.substring(0, cut) : text.substring(0, limit)) + '\\n\\n*(more in Obsidian)*';\n};\n\nconst summaryMsg = `## Latent Space \u2014 Daily Intelligence ${today}\\n\\n**Today's Signals**\\n${summary}`;\nconst kbMsg = newKBItems.length > 50 ? `**New Concepts Added**\\n${truncate(newKBItems, 1800)}` : null;\nconst projectsMsg = newProjectItems.length > 50 ? `**New Project Ideas Added**\\n${truncate(newProjectItems, 1800)}` : null;\n\nreturn [{ json: {\n  date: today,\n  updated_kb: updatedKB,\n  updated_projects: updatedProjects,\n  summary_msg: summaryMsg,\n  kb_msg: kbMsg,\n  projects_msg: projectsMsg,\n  has_new_kb: newKBItems.length > 50,\n  has_new_projects: newProjectItems.length > 50\n} }];"
+        "jsCode": "const claudeText = $input.first().json.content?.[0]?.text || '';\nconst existingKB = $node['Collect All Context'].json.kb_content || '';\nconst existingProjects = $node['Collect All Context'].json.projects_content || '';\n\nconst extract = (content, marker, endMarker) => {\n  const start = content.indexOf(marker);\n  if (start === -1) return '';\n  const end = endMarker ? content.indexOf(endMarker, start) : content.length;\n  return content.slice(start + marker.length, end === -1 ? content.length : end).trim();\n};\n\nconst today = new Date().toISOString().split('T')[0];\nconst kb = extract(claudeText, '===KNOWLEDGE_BASE===', '===PROJECTS===');\nconst projects = extract(claudeText, '===PROJECTS===', '===SUMMARY===');\nconst summary = extract(claudeText, '===SUMMARY===', null);\n\nconst applyUpdates = (existing, newContent) => {\n  let updated = existing;\n  const lines = newContent.split('\\n');\n  let i = 0;\n  while (i < lines.length) {\n    if (lines[i].startsWith('EXISTING_UPDATE:')) {\n      const conceptName = lines[i].replace('EXISTING_UPDATE:', '').trim();\n      const angleLines = [];\n      i++;\n      while (i < lines.length && !lines[i].startsWith('EXISTING_UPDATE:') && !lines[i].startsWith('SCORE:')) {\n        angleLines.push(lines[i]);\n        i++;\n      }\n      const newAngle = angleLines.join('\\n').trim();\n      if (newAngle && updated.includes(`**${conceptName}**`)) {\n        updated = updated.replace(`**${conceptName}**`, `**${conceptName}**\\n> **New angle (${today}):** ${newAngle}`);\n      }\n    } else {\n      i++;\n    }\n  }\n  return updated;\n};\n\nconst stripUpdates = (content) => {\n  const lines = content.split('\\n');\n  const result = [];\n  let skip = false;\n  for (const line of lines) {\n    if (line.startsWith('EXISTING_UPDATE:')) { skip = true; continue; }\n    if (skip && line.startsWith('SCORE:')) skip = false;\n    if (!skip) result.push(line);\n  }\n  return result.join('\\n').trim();\n};\n\nconst newKBItems = stripUpdates(kb);\nconst newProjectItems = stripUpdates(projects);\n\nlet updatedKB = applyUpdates(existingKB, kb);\nif (newKBItems.length > 50) {\n  updatedKB = updatedKB + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newKBItems;\n}\n\nlet updatedProjects = applyUpdates(existingProjects, projects);\nif (newProjectItems.length > 50) {\n  updatedProjects = updatedProjects + `\\n\\n---\\n\\n## Added ${today}\\n\\n` + newProjectItems;\n}\n\nconst chunkForDiscord = (header, body, limit = 1900) => {\n  if (!body || body.length < 50) return [];\n  const items = body.split('\\n\\n---\\n\\n');\n  const chunks = [];\n  let current = '';\n  const cap = limit - header.length - 10;\n  const flush = () => { if (current) { chunks.push(current); current = ''; } };\n  for (const item of items) {\n    const sep = current ? '\\n\\n---\\n\\n' : '';\n    if (current.length + sep.length + item.length > cap) {\n      flush();\n      if (item.length > cap) {\n        let rest = item;\n        while (rest.length > cap) {\n          const nl = rest.lastIndexOf('\\n', cap);\n          const split = nl > cap / 2 ? nl : cap;\n          chunks.push(rest.substring(0, split));\n          rest = rest.substring(split).trimStart();\n        }\n        current = rest;\n      } else {\n        current = item;\n      }\n    } else {\n      current += sep + item;\n    }\n  }\n  flush();\n  return chunks.map((c, i) => `${i === 0 ? header : header + ' (cont.)'}\\n${c}`);\n};\n\nconst summaryMsg = `## Latent Space \u2014 Daily Intelligence ${today}\\n\\n**Today's Signals**\\n${summary}`;\nconst kbMsgs = chunkForDiscord('**New Concepts Added**', newKBItems);\nconst projectsMsgs = chunkForDiscord('**New Project Ideas Added**', newProjectItems);\n\nreturn [{ json: {\n  date: today,\n  updated_kb: updatedKB,\n  updated_projects: updatedProjects,\n  summary_msg: summaryMsg,\n  kb_msgs: kbMsgs,\n  projects_msgs: projectsMsgs,\n  has_new_kb: kbMsgs.length > 0,\n  has_new_projects: projectsMsgs.length > 0\n} }];"
       },
       "id": "node-11-parse-merge",
       "name": "Parse and Merge Output",
@@ -433,7 +433,7 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        3000,
+        3250,
         600
       ],
       "credentials": {
@@ -455,7 +455,7 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        3000,
+        3250,
         800
       ],
       "credentials": {
@@ -464,6 +464,38 @@
           "name": "Discord Webhook account"
         }
       }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "kb_msgs",
+        "options": {
+          "destinationFieldName": "kb_msg"
+        }
+      },
+      "id": "node-19-split-kb",
+      "name": "Split KB Chunks",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "projects_msgs",
+        "options": {
+          "destinationFieldName": "projects_msg"
+        }
+      },
+      "id": "node-20-split-projects",
+      "name": "Split Projects Chunks",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        800
+      ]
     }
   ],
   "connections": {
@@ -614,7 +646,7 @@
       "main": [
         [
           {
-            "node": "Post KB to Discord",
+            "node": "Split KB Chunks",
             "type": "main",
             "index": 0
           }
@@ -626,12 +658,34 @@
       "main": [
         [
           {
-            "node": "Post Projects to Discord",
+            "node": "Split Projects Chunks",
             "type": "main",
             "index": 0
           }
         ],
         []
+      ]
+    },
+    "Split KB Chunks": {
+      "main": [
+        [
+          {
+            "node": "Post KB to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Projects Chunks": {
+      "main": [
+        [
+          {
+            "node": "Post Projects to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Build Claude Request": {
